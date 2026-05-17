@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { auth, googleProvider } from '../../lib/firebase';
 import { motion } from 'motion/react';
-import { LogIn, ShieldCheck } from 'lucide-react';
+import { LogIn, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { syncUserProfile } from '../../lib/userService';
 
 export const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
@@ -11,9 +12,13 @@ export const AdminLogin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && user.email === 'caphuutuan1@gmail.com') {
-        navigate('/admin');
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const profile = await syncUserProfile(user);
+        const isMasterAdmin = user.email === 'caphuutuan1@gmail.com';
+        if (isMasterAdmin || profile?.role === 'admin') {
+          navigate('/admin');
+        }
       }
     });
     return () => unsubscribe();
@@ -24,8 +29,9 @@ export const AdminLogin = () => {
     setError(null);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      if (result.user.email !== 'caphuutuan1@gmail.com') {
-        await auth.signOut();
+      const profile = await syncUserProfile(result.user);
+      
+      if (profile?.role !== 'admin') {
         setError('Bạn không có quyền truy cập trang quản trị.');
       } else {
         navigate('/admin');
@@ -72,6 +78,12 @@ export const AdminLogin = () => {
             </>
           )}
         </button>
+
+        <div className="mt-6">
+          <Link to="/login" className="flex items-center justify-center gap-2 text-xs font-bold text-on-surface-variant hover:text-primary transition-all">
+            <ArrowLeft className="w-3 h-3" /> Quay lại Đăng nhập khách
+          </Link>
+        </div>
         
         <p className="mt-8 text-xs text-on-surface-variant leading-relaxed">
           Chỉ tài khoản admin được cấp quyền mới có thể truy cập.<br/>

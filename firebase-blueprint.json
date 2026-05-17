@@ -82,6 +82,21 @@
       },
       "required": ["name", "event", "text"]
     },
+    "user": {
+      "title": "User Profile",
+      "description": "Information about registered users and their roles",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "role", "createdAt"]
+    },
     "settings": {
       "title": "Settings",
       "description": "Site-wide configuration and content",
@@ -96,6 +111,10 @@
     "/bookings/{bookingId}": {
       "schema": "booking",
       "description": "User lead submissions"
+    },
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "Registered user profiles and roles"
     },
     "/services/{serviceId}": {
       "schema": "service",

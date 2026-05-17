@@ -34,6 +34,10 @@ import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminBookings } from './components/admin/AdminBookings';
 import { AdminContent } from './components/admin/AdminContent';
 import { AdminSettings } from './components/admin/AdminSettings';
+import { AdminUsers } from './components/admin/AdminUsers';
+import { Login } from './components/Login';
+import { Account } from './components/Account';
+import { Toaster } from 'react-hot-toast';
 
 function MainSite() {
   return (
@@ -68,17 +72,21 @@ export default function App() {
         <SmoothScroll>
           <Routes>
             <Route path="/" element={<MainSite />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/account" element={<Account />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="content" element={<AdminContent />} />
+              <Route path="users" element={<AdminUsers />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
           </Routes>
         </SmoothScroll>
       </Router>
       <BookingModal />
+      <Toaster position="bottom-right" reverseOrder={false} />
     </BookingProvider>
   );
 }

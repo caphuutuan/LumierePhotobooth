@@ -12,16 +12,26 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // For now, allow the creator or specific emails
-      // In production, you'd use a dedicated /admins collection
       return isSignedIn() && (
         request.auth.token.email == "caphuutuan1@gmail.com" ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
       );
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
     }
 
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
+      allow delete: if isAdmin();
     }
 
     // Content collections (Public Read-only, Admin Write)
@@ -53,7 +63,8 @@ service cloud.firestore {
     // Bookings (Public Create, Admin Full Access)
     match /bookings/{bookingId} {
       allow create: if true;
-      allow read, update, delete: if isAdmin();
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.email == request.auth.token.email || resource.data.phone == request.auth.token.phone_number));
+      allow update, delete: if isAdmin();
     }
 
     // Admin list

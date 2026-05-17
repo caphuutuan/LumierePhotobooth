@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { collection, query, orderBy, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
+import toast from 'react-hot-toast';
 import { 
   Search, 
   Trash2, 
@@ -41,6 +42,7 @@ export const AdminBookings = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(9); // Default 9 to fit 3x3 grid
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -63,18 +65,22 @@ export const AdminBookings = () => {
     try {
       await updateDoc(doc(db, 'bookings', id), { status: newStatus });
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
+      toast.success(newStatus === 'confirmed' ? 'Đã duyệt lịch đặt' : 'Đã chuyển về chờ xử lý');
     } catch (err) {
       console.error(err);
+      toast.error('Có lỗi xảy ra khi cập nhật trạng thái');
     }
   };
 
   const deleteBooking = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa lịch đặt này?')) return;
     try {
       await deleteDoc(doc(db, 'bookings', id));
       setBookings(prev => prev.filter(b => b.id !== id));
+      toast.success('Đã xoá lịch đặt thành công');
+      setDeletingId(null);
     } catch (err) {
       console.error(err);
+      toast.error('Có lỗi xảy ra khi xoá lịch đặt');
     }
   };
 
@@ -203,7 +209,7 @@ export const AdminBookings = () => {
                           {booking.status === 'confirmed' ? 'Đã duyệt' : 'Chờ xử lý'}
                         </span>
                         <button 
-                          onClick={() => deleteBooking(booking.id)}
+                          onClick={() => setDeletingId(booking.id)}
                           className="p-2 text-on-surface-variant hover:text-error lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -486,7 +492,7 @@ export const AdminBookings = () => {
                             <CheckCircle2 className="w-3 h-3" />
                           </button>
                           <button 
-                            onClick={() => deleteBooking(booking.id)}
+                            onClick={() => setDeletingId(booking.id)}
                             className="p-1.5 lg:p-2 bg-white rounded-lg border border-surface-variant/10 hover:text-error transition-all shadow-sm"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -524,6 +530,49 @@ export const AdminBookings = () => {
                       </div>
                   </div>
                 ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deletingId && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeletingId(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100]"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white rounded-[32px] p-8 z-[101] shadow-2xl text-center"
+            >
+              <div className="w-20 h-20 bg-error/10 text-error rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash2 className="w-10 h-10" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">Xoá lịch đặt này?</h2>
+              <p className="text-on-surface-variant text-sm mb-8 px-4">
+                Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xoá lịch đặt của <strong>{bookings.find(b => b.id === deletingId)?.name}</strong>?
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={() => setDeletingId(null)}
+                  className="py-4 rounded-2xl bg-surface-container text-on-surface font-bold hover:bg-surface-variant/20 transition-all"
+                >
+                  Huỷ
+                </button>
+                <button 
+                  onClick={() => deletingId && deleteBooking(deletingId)}
+                  className="py-4 rounded-2xl bg-error text-white font-bold hover:shadow-lg hover:shadow-error/20 transition-all"
+                >
+                  Xác nhận xoá
+                </button>
               </div>
             </motion.div>
           </>

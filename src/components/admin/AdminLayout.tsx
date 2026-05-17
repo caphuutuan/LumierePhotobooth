@@ -12,8 +12,11 @@ import {
   Settings,
   ChevronRight,
   Menu,
-  X
+  X,
+  Users
 } from 'lucide-react';
+import { syncUserProfile } from '../../lib/userService';
+import toast from 'react-hot-toast';
 
 export const AdminLayout = () => {
   const [loading, setLoading] = useState(true);
@@ -23,10 +26,18 @@ export const AdminLayout = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user || user.email !== 'caphuutuan1@gmail.com') {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
         navigate('/admin/login');
       } else {
+        const userProfile = await syncUserProfile(user);
+        const isMasterAdmin = user.email === 'caphuutuan1@gmail.com';
+        
+        if (!isMasterAdmin && userProfile?.role !== 'admin') {
+          toast.error('Bạn không có quyền truy cập trang quản trị');
+          navigate('/');
+          return;
+        }
         setUser(user);
         setLoading(false);
       }
@@ -51,6 +62,7 @@ export const AdminLayout = () => {
     { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin' },
     { icon: CalendarCheck, label: 'Lịch đặt hẹn', path: '/admin/bookings' },
     { icon: ImageIcon, label: 'Quản lý nội dung', path: '/admin/content' },
+    { icon: Users, label: 'Người dùng & Quyền', path: '/admin/users' },
     { icon: Settings, label: 'Cài đặt site', path: '/admin/settings' },
   ];
 
