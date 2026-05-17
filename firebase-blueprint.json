@@ -1,0 +1,125 @@
+{
+  "entities": {
+    "booking": {
+      "title": "Booking",
+      "description": "Customer booking requests and leads",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "date": { "type": "string" },
+        "eventType": { "type": "string" },
+        "packagePlan": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { 
+          "type": "string", 
+          "enum": ["new", "contacted", "confirmed", "cancelled"] 
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "phone", "status", "createdAt"]
+    },
+    "gallery": {
+      "title": "Hero Gallery",
+      "description": "Images for the hero section slider",
+      "type": "object",
+      "properties": {
+        "image": { "type": "string" },
+        "alt": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["image"]
+    },
+    "service": {
+      "title": "Service",
+      "description": "Offering categories",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "features": { "type": "array" }
+      },
+      "required": ["title", "description", "icon"]
+    },
+    "portfolio_item": {
+      "title": "Portfolio Item",
+      "description": "Project gallery items",
+      "type": "object",
+      "properties": {
+        "image": { "type": "string" },
+        "alt": { "type": "string" },
+        "category": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["image", "category"]
+    },
+    "pricing_plan": {
+      "title": "Pricing Plan",
+      "description": "Standard service packages",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "string" },
+        "isPopular": { "type": "boolean" },
+        "features": { "type": "array" },
+        "order": { "type": "number" }
+      },
+      "required": ["name", "price", "features"]
+    },
+    "testimonial": {
+      "title": "Testimonial",
+      "description": "Customer feedback",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "event": { "type": "string" },
+        "text": { "type": "string" },
+        "avatar": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["name", "event", "text"]
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Site-wide configuration and content",
+      "type": "object",
+      "properties": {
+        "hero_gallery": { "type": "array" },
+        "stats": { "type": "array" }
+      }
+    }
+  },
+  "firestore": {
+    "/bookings/{bookingId}": {
+      "schema": "booking",
+      "description": "User lead submissions"
+    },
+    "/services/{serviceId}": {
+      "schema": "service",
+      "description": "Services offered"
+    },
+    "/gallery/{itemId}": {
+      "schema": "gallery",
+      "description": "Hero section imagery"
+    },
+    "/portfolio/{itemId}": {
+      "schema": "portfolio_item",
+      "description": "Portfolio gallery items"
+    },
+    "/pricing/{planId}": {
+      "schema": "pricing_plan",
+      "description": "Package pricing"
+    },
+    "/testimonials/{id}": {
+      "schema": "testimonial",
+      "description": "Customer feedback cards"
+    },
+    "/settings/global": {
+      "schema": "settings",
+      "description": "Global website content"
+    }
+  }
+}

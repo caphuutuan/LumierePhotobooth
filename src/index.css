@@ -1,0 +1,104 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+
+  --color-surface-container-low: #f6f3f2;
+  --color-surface-dim: #dcd9d9;
+  --color-on-surface: #1c1b1b;
+  --color-secondary-fixed: #e7e2d4;
+  --color-on-error: #ffffff;
+  --color-on-background: #1c1b1b;
+  --color-tertiary: #6b5a5f;
+  --color-surface-tint: #735c00;
+  --color-tertiary-container: #c3aeb3;
+  --color-on-tertiary-fixed-variant: #524348;
+  --color-primary-fixed: #ffe088;
+  --color-on-secondary-container: #656357;
+  --color-primary-container: #d4af37;
+  --color-on-secondary: #ffffff;
+  --color-on-tertiary-container: #504146;
+  --color-on-primary: #ffffff;
+  --color-primary-fixed-dim: #e9c349;
+  --color-outline: #7f7663;
+  --color-on-secondary-fixed-variant: #49473c;
+  --color-on-primary-fixed-variant: #574500;
+  --color-secondary-fixed-dim: #cbc6b8;
+  --color-on-primary-fixed: #241a00;
+  --color-surface-bright: #fcf9f8;
+  --color-on-surface-variant: #4d4635;
+  --color-on-primary-container: #554300;
+  --color-surface-container: #f0eded;
+  --color-surface-variant: #e5e2e1;
+  --color-inverse-primary: #e9c349;
+  --color-inverse-surface: #313030;
+  --color-inverse-on-surface: #f3f0ef;
+  --color-surface-container-lowest: #ffffff;
+  --color-background: #fcf9f8;
+  --color-on-tertiary-fixed: #24181c;
+  --color-outline-variant: #d0c5af;
+  --color-error: #ba1a1a;
+  --color-primary: #735c00;
+  --color-error-container: #ffdad6;
+  --color-surface-container-highest: #e5e2e1;
+  --color-tertiary-fixed: #f4dde3;
+  --color-tertiary-fixed-dim: #d7c1c7;
+  --color-secondary: #615e53;
+  --color-surface: #fcf9f8;
+  --color-secondary-container: #e4dfd1;
+  --color-on-tertiary: #ffffff;
+  --color-surface-container-high: #eae7e7;
+  --color-on-error-container: #93000a;
+  --color-on-secondary-fixed: #1d1c13;
+
+  --animate-bounce-slow: bounce 3s infinite;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  html.lenis, html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+  .lenis.lenis-scrolling iframe {
+    pointer-events: none;
+  }
+  body {
+    @apply bg-background text-on-surface font-body;
+  }
+}
+
+.glass-card {
+  background: rgba(252, 249, 248, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.4);
+}
+
+.masonry {
+  column-count: 1;
+}
+
+@media (min-width: 768px) {
+  .masonry {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .masonry {
+    column-count: 3;
+  }
+}

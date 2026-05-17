@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // For now, allow the creator or specific emails
+      // In production, you'd use a dedicated /admins collection
+      return isSignedIn() && (
+        request.auth.token.email == "caphuutuan1@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Content collections (Public Read-only, Admin Write)
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /gallery/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /portfolio/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /pricing/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /testimonials/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /settings/global {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Bookings (Public Create, Admin Full Access)
+    match /bookings/{bookingId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Admin list
+    match /admins/{uid} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only manageable via Firebase Console or pre-defined roles
+    }
+  }
+}

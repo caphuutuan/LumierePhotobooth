@@ -1,0 +1,8 @@
+{
+  "name": "Lumière Photobooth",
+  "description": "Premium Wedding & Event Photobooth services in Vietnam. High-end editorial aesthetics and luxury experiences.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
