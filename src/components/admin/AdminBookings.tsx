@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, FormEvent } from 'react';
 import { collection, query, orderBy, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
+import { getGlobalSettings } from '../../lib/settingsService';
 import toast from 'react-hot-toast';
 import { 
   Search, 
@@ -13,7 +14,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  LayoutList
+  LayoutList,
+  ShieldCheck
 } from 'lucide-react';
 import { 
   format, 
@@ -43,6 +45,19 @@ export const AdminBookings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(9); // Default 9 to fit 3x3 grid
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [eventTypes, setEventTypes] = useState<string[]>([]);
+  const [newBooking, setNewBooking] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    packagePlan: 'Cơ bản',
+    eventType: 'Đám cưới',
+    message: '',
+    status: 'new'
+  });
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -57,8 +72,21 @@ export const AdminBookings = () => {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const settings = await getGlobalSettings();
+      if (settings.eventTypes && settings.eventTypes.length > 0) {
+        setEventTypes(settings.eventTypes);
+        setNewBooking(prev => ({ ...prev, eventType: settings.eventTypes[0] }));
+      }
+    } catch (err) {
+      console.error('Error fetching settings:', err);
+    }
+  };
+
   useEffect(() => {
     fetchBookings();
+    fetchSettings();
   }, []);
 
   const updateStatus = async (id: string, newStatus: string) => {
@@ -81,6 +109,40 @@ export const AdminBookings = () => {
     } catch (err) {
       console.error(err);
       toast.error('Có lỗi xảy ra khi xoá lịch đặt');
+    }
+  };
+
+  const handleCreateBooking = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+      const docRef = await addDoc(collection(db, 'bookings'), {
+        ...newBooking,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      
+      const createdBooking = { id: docRef.id, ...newBooking };
+      setBookings(prev => [createdBooking, ...prev]);
+      toast.success('Đã tạo lịch đặt mới thành công');
+      setShowCreateModal(false);
+      // Reset form
+      setNewBooking({
+        name: '',
+        phone: '',
+        email: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        packagePlan: 'Cơ bản',
+        eventType: 'Sự kiện cá nhân',
+        message: '',
+        status: 'confirmed'
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Có lỗi xảy ra khi tạo lịch đặt');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -125,6 +187,17 @@ export const AdminBookings = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 lg:gap-4">
+          <button 
+            onClick={() => {
+              setNewBooking(prev => ({ ...prev, date: format(new Date(), 'yyyy-MM-dd') }));
+              setShowCreateModal(true);
+            }}
+            className="bg-primary text-white px-5 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 hover:shadow-lg transition-all shadow-primary/20"
+          >
+            <LayoutList className="w-4 h-4" />
+            Tạo lịch hẹn
+          </button>
+
           <div className="flex p-1 bg-surface-container rounded-2xl">
             <button
               onClick={() => setViewMode('list')}
@@ -401,9 +474,7 @@ export const AdminBookings = () => {
                   return (
                     <div 
                       key={i} 
-                      onClick={() => {
-                        if (dayBookings.length > 0) setSelectedDay(day);
-                      }}
+                      onClick={() => setSelectedDay(day)}
                       className={`min-h-[120px] lg:min-h-[160px] p-2 lg:p-4 bg-white transition-all hover:bg-primary/5 group relative border-t border-l border-surface-variant/10 cursor-pointer ${
                         !isCurMonth ? 'bg-surface-container/5 opacity-40' : ''
                       }`}
@@ -476,6 +547,46 @@ export const AdminBookings = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+                {/* Empty State Action */}
+                {getBookingsForDay(selectedDay).length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-10 px-6 bg-surface-container/20 rounded-[32px] border border-dashed border-surface-variant/30 text-center">
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-on-surface-variant/40 mb-4">
+                      <CalendarIcon className="w-8 h-8" />
+                    </div>
+                    <p className="text-on-surface-variant font-medium mb-6">Chưa có lịch hẹn nào cho ngày này.</p>
+                    <button 
+                      onClick={() => {
+                        setNewBooking({
+                          ...newBooking,
+                          date: format(selectedDay, 'yyyy-MM-dd')
+                        });
+                        setShowCreateModal(true);
+                      }}
+                      className="bg-primary text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:shadow-lg transition-all"
+                    >
+                      <LayoutList className="w-4 h-4" />
+                      Thêm lịch mới
+                    </button>
+                  </div>
+                )}
+
+                {getBookingsForDay(selectedDay).length > 0 && (
+                  <div className="flex justify-start">
+                    <button 
+                      onClick={() => {
+                        setNewBooking({
+                          ...newBooking,
+                          date: format(selectedDay, 'yyyy-MM-dd')
+                        });
+                        setShowCreateModal(true);
+                      }}
+                      className="flex items-center gap-2 text-primary font-bold px-4 py-2 bg-primary/5 rounded-xl hover:bg-primary hover:text-white transition-all text-xs"
+                    >
+                      + Thêm lịch ngày {format(selectedDay, 'dd/MM')}
+                    </button>
+                  </div>
+                )}
+
                 {getBookingsForDay(selectedDay).map((booking) => (
                   <div key={booking.id} className="bg-surface-container/30 p-5 lg:p-6 rounded-[24px] lg:rounded-3xl border border-surface-variant/10 relative">
                      <div className="flex justify-between items-start mb-4">
@@ -574,6 +685,189 @@ export const AdminBookings = () => {
                   Xác nhận xoá
                 </button>
               </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Create Booking Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[120]"
+              onClick={() => !isSubmitting && setShowCreateModal(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              className="fixed top-[5%] left-[5%] right-[5%] bottom-[5%] lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-5xl lg:h-auto max-h-[95vh] bg-white rounded-[40px] z-[121] shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="p-8 lg:p-12 border-b border-surface-variant/10 flex items-center justify-between bg-white relative z-10">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                    <LayoutList className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-sans font-bold text-primary tracking-tight">Tạo lịch hẹn mới</h2>
+                    <p className="text-on-surface-variant text-base font-medium">Nhập chi tiết thông tin khách hàng và dịch vụ.</p>
+                  </div>
+                </div>
+                <button 
+                  disabled={isSubmitting}
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-4 bg-surface-container rounded-2xl hover:bg-error/10 hover:text-error transition-all disabled:opacity-50"
+                >
+                  <X className="w-7 h-7" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateBooking} className="flex-1 overflow-y-auto p-8 lg:p-12 space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                  <div className="space-y-8">
+                    <div className="flex items-center gap-3 text-xs font-black uppercase tracking-widest text-primary bg-primary/5 w-fit px-4 py-2 rounded-xl">
+                      <ShieldCheck className="w-4 h-4" /> Thông tin khách hàng
+                    </div>
+                    <div className="space-y-5">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Họ tên khách hàng</label>
+                        <input 
+                          required
+                          type="text" 
+                          placeholder="ví dụ: Nguyễn Văn A"
+                          className="w-full bg-surface-container border-none rounded-2xl p-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                          value={newBooking.name}
+                          onChange={(e) => setNewBooking({...newBooking, name: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Số điện thoại</label>
+                        <input 
+                          required
+                          type="tel" 
+                          placeholder="09xx xxx xxx"
+                          className="w-full bg-surface-container border-none rounded-2xl p-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                          value={newBooking.phone}
+                          onChange={(e) => setNewBooking({...newBooking, phone: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Địa chỉ Email</label>
+                        <input 
+                          type="email" 
+                          placeholder="khachhang@gmail.com"
+                          className="w-full bg-surface-container border-none rounded-2xl p-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                          value={newBooking.email}
+                          onChange={(e) => setNewBooking({...newBooking, email: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-8">
+                    <div className="flex items-center gap-3 text-xs font-black uppercase tracking-widest text-primary bg-primary/5 w-fit px-4 py-2 rounded-xl">
+                      <CalendarIcon className="w-4 h-4" /> Dịch vụ & Thời gian
+                    </div>
+                    <div className="space-y-5">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Ngày thực hiện</label>
+                        <input 
+                          required
+                          type="date" 
+                          className="w-full bg-surface-container border-none rounded-2xl p-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                          value={newBooking.date}
+                          onChange={(e) => setNewBooking({...newBooking, date: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Gói dịch vụ</label>
+                        <select 
+                          className="w-full bg-surface-container border-none rounded-2xl p-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer"
+                          value={newBooking.packagePlan}
+                          onChange={(e) => setNewBooking({...newBooking, packagePlan: e.target.value})}
+                        >
+                          <option>Cơ bản</option>
+                          <option>Phổ thông</option>
+                          <option>Cao cấp</option>
+                          <option>Signature</option>
+                          <option>Sự kiện lớn / Doanh nghiệp</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Loại sự kiện</label>
+                        <select 
+                          className="w-full bg-surface-container border-none rounded-2xl p-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer"
+                          value={newBooking.eventType}
+                          onChange={(e) => setNewBooking({...newBooking, eventType: e.target.value})}
+                        >
+                          {eventTypes.map(type => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Yêu cầu & Ghi chú</label>
+                  <textarea 
+                    rows={4}
+                    placeholder="Nhập các yêu cầu bổ sung của khách hàng tại đây..."
+                    className="w-full bg-surface-container border-none rounded-3xl p-6 text-sm font-bold focus:ring-2 focus:ring-primary/20 resize-none"
+                    value={newBooking.message}
+                    onChange={(e) => setNewBooking({...newBooking, message: e.target.value})}
+                  />
+                </div>
+
+                <div className="pt-10 border-t border-surface-variant/10 flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="flex items-center gap-5">
+                    <label className="text-xs font-bold text-on-surface-variant">Thiết lập trạng thái:</label>
+                    <div className="flex p-1.5 bg-surface-container rounded-2xl">
+                      <button 
+                        type="button"
+                        onClick={() => setNewBooking({...newBooking, status: 'new'})}
+                        className={`px-6 py-3 rounded-xl text-xs font-bold uppercase transition-all ${newBooking.status === 'new' ? 'bg-amber-100 text-amber-700 shadow-sm' : 'text-on-surface-variant hover:bg-surface-variant/10'}`}
+                      >
+                        Chờ xử lý
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setNewBooking({...newBooking, status: 'confirmed'})}
+                        className={`px-6 py-3 rounded-xl text-xs font-bold uppercase transition-all ${newBooking.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 shadow-sm' : 'text-on-surface-variant hover:bg-surface-variant/10'}`}
+                      >
+                        Xác nhận ngay
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 w-full md:w-auto">
+                    <button 
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => setShowCreateModal(false)}
+                      className="flex-1 md:flex-none px-10 py-5 rounded-2xl font-bold bg-surface-container text-on-surface hover:bg-surface-variant/20 transition-all"
+                    >
+                      Hủy bỏ
+                    </button>
+                    <button 
+                      disabled={isSubmitting}
+                      className="flex-1 md:flex-none px-12 py-5 rounded-2xl font-bold bg-primary text-white hover:shadow-2xl hover:shadow-primary/30 transition-all flex items-center justify-center gap-3"
+                    >
+                      {isSubmitting ? (
+                        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-6 h-6" />
+                      )}
+                      Tạo lịch đặt
+                    </button>
+                  </div>
+                </div>
+              </form>
             </motion.div>
           </>
         )}

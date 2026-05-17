@@ -60,19 +60,45 @@ export const Account = () => {
   const fetchUserBookings = async (currentUser: any, userProfile: any) => {
     try {
       const bookingsRef = collection(db, 'bookings');
-      // Search by email to find bookings
-      const q = query(
-        bookingsRef, 
-        where('email', '==', userProfile?.email || currentUser.email || '---'),
+      
+      // We'll perform two queries: one by userId (most reliable) and one by email (for legacy/guest bookings)
+      const qByUserId = query(
+        bookingsRef,
+        where('userId', '==', currentUser.uid),
         orderBy('createdAt', 'desc')
       );
+
+      const email = userProfile?.email || currentUser.email;
+      const qByEmail = query(
+        bookingsRef,
+        where('email', '==', email || '---'),
+        orderBy('createdAt', 'desc')
+      );
+
+      const [snapUserId, snapEmail] = await Promise.all([
+        getDocs(qByUserId),
+        getDocs(qByEmail)
+      ]);
+
+      const bookingMap = new Map();
       
-      const querySnapshot = await getDocs(q);
-      const bookingData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      snapEmail.docs.forEach(doc => {
+        bookingMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+
+      snapUserId.docs.forEach(doc => {
+        bookingMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+
+      const sortedBookings = Array.from(bookingMap.values()).sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB - dateA;
+      });
       
-      setBookings(bookingData);
+      setBookings(sortedBookings);
     } catch (err) {
-      console.error(err);
+      console.error("Booking fetch error:", err);
     }
   };
 

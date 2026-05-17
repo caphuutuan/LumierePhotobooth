@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Calendar, User, Phone, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, User, Phone, MessageSquare, CheckCircle2, Mail } from 'lucide-react';
 import { useBookingModal } from '../context/BookingContext';
 import { submitBooking } from '../lib/bookingService';
+import { getGlobalSettings } from '../lib/settingsService';
+import { auth } from '../lib/firebase';
 
 export const BookingModal = () => {
   const { isOpen, closeModal, selectedPlan } = useBookingModal();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [eventTypes, setEventTypes] = useState<string[]>(['Đám cưới', 'Sinh nhật', 'Sự kiện doanh nghiệp', 'Khác']);
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     phone: '',
     date: '',
     eventType: 'Đám cưới',
@@ -19,22 +23,53 @@ export const BookingModal = () => {
 
   const today = new Date().toISOString().split('T')[0];
 
+  useEffect(() => {
+    // Prefill user data if logged in
+    const user = auth.currentUser;
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.displayName || '',
+        email: user.email || '',
+        phone: user.phoneNumber || prev.phone
+      }));
+    }
+
+    const fetchEventTypes = async () => {
+      const settings = await getGlobalSettings();
+      if (settings.eventTypes && settings.eventTypes.length > 0) {
+        setEventTypes(settings.eventTypes);
+        setFormData(prev => ({ ...prev, eventType: settings.eventTypes[0] }));
+      }
+    };
+    fetchEventTypes();
+  }, [isOpen]);
+
   // Update packagePlan when selectedPlan changes (modal opened from pricing)
-  useState(() => {
+  useEffect(() => {
     if (selectedPlan) {
       setFormData(prev => ({ ...prev, packagePlan: selectedPlan }));
     }
-  });
+  }, [selectedPlan]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const result = await submitBooking(formData);
+    
+    // Add current user info if available
+    const finalData = {
+      ...formData,
+      userId: auth.currentUser?.uid || null,
+      email: formData.email || auth.currentUser?.email || null
+    };
+
+    const result = await submitBooking(finalData as any);
     setLoading(false);
     if (result.success) {
       setSubmitted(true);
       setFormData({ 
         name: '', 
+        email: '',
         phone: '', 
         date: '', 
         eventType: 'Đám cưới', 
@@ -94,7 +129,7 @@ export const BookingModal = () => {
                   </div>
 
                   {/* Form */}
-                  <form className="p-8 space-y-6" onSubmit={handleSubmit}>
+                  <form className="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar" onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest text-on-surface-variant px-1">
@@ -124,6 +159,20 @@ export const BookingModal = () => {
                       </div>
                     </div>
 
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest text-on-surface-variant px-1">
+                        <Mail className="w-4 h-4" /> Email liên hệ
+                      </label>
+                      <input
+                        required
+                        type="email"
+                        className="w-full bg-surface-container-low border-none rounded-2xl p-4 focus:ring-2 focus:ring-primary/20 transition-all font-body"
+                        placeholder="example@gmail.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest text-on-surface-variant px-1">
@@ -145,10 +194,9 @@ export const BookingModal = () => {
                           value={formData.eventType}
                           onChange={(e) => setFormData({ ...formData, eventType: e.target.value })}
                         >
-                          <option>Đám cưới</option>
-                          <option>Sinh nhật</option>
-                          <option>Sự kiện doanh nghiệp</option>
-                          <option>Khác</option>
+                          {eventTypes.map(type => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
