@@ -63,7 +63,14 @@ service cloud.firestore {
     // Bookings (Public Create, Admin Full Access)
     match /bookings/{bookingId} {
       allow create: if true;
-      allow read: if isAdmin() || (isSignedIn() && (resource.data.email == request.auth.token.email || resource.data.phone == request.auth.token.phone_number));
+      allow read: if isAdmin() || (
+        isSignedIn() && (
+          resource.data.userId == request.auth.uid || 
+          resource.data.email == request.auth.token.email ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           resource.data.phone == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.phone)
+        )
+      );
       allow update, delete: if isAdmin();
     }
 

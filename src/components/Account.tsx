@@ -61,7 +61,7 @@ export const Account = () => {
     try {
       const bookingsRef = collection(db, 'bookings');
       
-      // We'll perform two queries: one by userId (most reliable) and one by email (for legacy/guest bookings)
+      // We'll perform three queries: by userId, email, and phone
       const qByUserId = query(
         bookingsRef,
         where('userId', '==', currentUser.uid),
@@ -75,14 +75,26 @@ export const Account = () => {
         orderBy('createdAt', 'desc')
       );
 
-      const [snapUserId, snapEmail] = await Promise.all([
+      const phone = userProfile?.phone || currentUser.phoneNumber;
+      const qByPhone = query(
+        bookingsRef,
+        where('phone', '==', phone || '---'),
+        orderBy('createdAt', 'desc')
+      );
+
+      const [snapUserId, snapEmail, snapPhone] = await Promise.all([
         getDocs(qByUserId),
-        getDocs(qByEmail)
+        getDocs(qByEmail),
+        getDocs(qByPhone)
       ]);
 
       const bookingMap = new Map();
       
       snapEmail.docs.forEach(doc => {
+        bookingMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+
+      snapPhone.docs.forEach(doc => {
         bookingMap.set(doc.id, { id: doc.id, ...doc.data() });
       });
 
@@ -225,7 +237,7 @@ export const Account = () => {
                 </div>
                 <div>
                   <p className="text-on-surface-variant font-medium">Bạn chưa có lịch hẹn nào được ghi nhận.</p>
-                  <p className="text-xs text-on-surface-variant/60 mt-1">Các lịch hẹn bạn đặt bằng email {user.email} sẽ xuất hiện tại đây.</p>
+                  <p className="text-xs text-on-surface-variant/60 mt-1">Các lịch hẹn bạn đặt bằng email {user.email} hoặc số điện thoại {profile?.phone} sẽ xuất hiện tại đây.</p>
                 </div>
                 <button 
                    onClick={() => navigate('/')} 
