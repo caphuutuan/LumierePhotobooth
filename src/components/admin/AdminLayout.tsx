@@ -31,9 +31,9 @@ export const AdminLayout = () => {
         navigate('/admin/login');
       } else {
         const userProfile = await syncUserProfile(user);
-        const isMasterAdmin = user.email === 'caphuutuan1@gmail.com';
+        const isAdminRole = userProfile && ['master', 'admin', 'moderator', 'editor', 'staff'].includes(userProfile.role);
         
-        if (!isMasterAdmin && userProfile?.role !== 'admin') {
+        if (!isAdminRole) {
           toast.error('Bạn không có quyền truy cập trang quản trị');
           navigate('/');
           return;
