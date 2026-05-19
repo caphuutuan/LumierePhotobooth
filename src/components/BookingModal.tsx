@@ -209,8 +209,8 @@ export const BookingModal = () => {
                         onChange={(e) => setFormData({ ...formData, packagePlan: e.target.value })}
                       >
                         <option>Basic</option>
-                        <option>Standard</option>
                         <option>Premium</option>
+                        <option>Luxury</option>
                         <option>Custom</option>
                       </select>
                     </div>

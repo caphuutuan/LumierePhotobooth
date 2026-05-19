@@ -12,6 +12,7 @@ import {
   Clock
 } from 'lucide-react';
 import { getAllUsers, updateUserRole, UserProfile } from '../../lib/userService';
+import { auth } from '../../lib/firebase';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -21,6 +22,9 @@ export const AdminUsers = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const currentUser = auth.currentUser;
+  const isCurrentUserMaster = currentUser?.email === 'caphuutuan1@gmail.com';
 
   useEffect(() => {
     fetchUsers();
@@ -39,6 +43,16 @@ export const AdminUsers = () => {
   };
 
   const handleToggleRole = async (userId: string, currentRole: string) => {
+    if (userId === currentUser?.uid) {
+      toast.error('Bạn không thể tự thay đổi quyền của chính mình');
+      return;
+    }
+
+    if (currentRole === 'admin' && !isCurrentUserMaster) {
+      toast.error('Chỉ Master Owner mới có quyền gỡ bỏ quyền Admin');
+      return;
+    }
+
     setUpdatingId(userId);
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     try {
@@ -140,6 +154,14 @@ export const AdminUsers = () => {
                       <span className="text-[10px] font-bold text-primary bg-primary/5 px-3 py-1 rounded-lg">
                         MASTER OWNER
                       </span>
+                    ) : user.id === currentUser?.uid ? (
+                      <span className="text-[10px] font-bold text-primary bg-primary/5 px-3 py-1 rounded-lg">
+                        BẠN (ADMIN)
+                      </span>
+                    ) : user.role === 'admin' && !isCurrentUserMaster ? (
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant bg-surface-container px-3 py-1 rounded-lg">
+                        <Shield className="w-3 h-3" /> ADMIN
+                      </div>
                     ) : (
                       <button 
                         onClick={() => handleToggleRole(user.id, user.role)}
