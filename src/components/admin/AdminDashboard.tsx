@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { 
   Users, 
   Calendar, 
@@ -106,40 +107,52 @@ export const AdminDashboard = () => {
               <Calendar className="w-5 h-5 text-primary" />
               Lịch đặt gần đây
             </h2>
-            <button className="text-primary text-xs lg:text-sm font-bold hover:underline">Xem tất cả</button>
+            <Link to="/admin/bookings" className="text-primary text-xs lg:text-sm font-bold hover:underline flex items-center gap-1">
+               Xem tất cả <ArrowUpRight className="w-4 h-4" />
+            </Link>
           </div>
 
           <div className="bg-white rounded-[24px] lg:rounded-[32px] border border-surface-variant/10 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[600px]">
+              <table className="w-full text-left min-w-[700px]">
                 <thead>
                   <tr className="bg-surface-container/30">
+                    <th className="px-4 lg:px-6 py-4 text-[10px] lg:text-xs font-bold uppercase tracking-wider text-on-surface-variant">Mã</th>
                     <th className="px-4 lg:px-6 py-4 text-[10px] lg:text-xs font-bold uppercase tracking-wider text-on-surface-variant">Khách hàng</th>
                     <th className="px-4 lg:px-6 py-4 text-[10px] lg:text-xs font-bold uppercase tracking-wider text-on-surface-variant">Ngày tiệc</th>
                     <th className="px-4 lg:px-6 py-4 text-[10px] lg:text-xs font-bold uppercase tracking-wider text-on-surface-variant">Sự kiện</th>
-                    <th className="px-4 lg:px-6 py-4 text-[10px] lg:text-xs font-bold uppercase tracking-wider text-on-surface-variant">Gói</th>
                     <th className="px-4 lg:px-6 py-4 text-[10px] lg:text-xs font-bold uppercase tracking-wider text-on-surface-variant">Trạng thái</th>
+                    <th className="px-4 lg:px-6 py-4 text-[10px] lg:text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Hành động</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-variant/10">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="p-10 text-center text-on-surface-variant">Đang tải dữ liệu...</td>
+                      <td colSpan={6} className="p-10 text-center text-on-surface-variant">Đang tải dữ liệu...</td>
                     </tr>
                   ) : recentBookings.length === 0 ? (
                      <tr>
-                      <td colSpan={5} className="p-10 text-center text-on-surface-variant">Chưa có lịch đặt nào.</td>
+                      <td colSpan={6} className="p-10 text-center text-on-surface-variant">Chưa có lịch đặt nào.</td>
                     </tr>
                   ) : (
                     paginatedBookings.map((booking) => (
                       <tr key={booking.id} className="hover:bg-primary/5 transition-colors">
                         <td className="px-4 lg:px-6 py-4">
-                          <p className="font-bold text-xs lg:text-sm">{booking.name}</p>
+                           <span className="text-[10px] font-mono font-bold text-primary bg-primary/5 px-2 py-1 rounded-lg">
+                             #{booking.id.slice(0, 8).toUpperCase()}
+                           </span>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <Link 
+                            to={`/admin/customers/${booking.userId || booking.phone}`}
+                            className="font-bold text-xs lg:text-sm hover:text-primary transition-colors block"
+                          >
+                            {booking.name}
+                          </Link>
                           <p className="text-[10px] lg:text-xs text-on-surface-variant">{booking.phone}</p>
                         </td>
                         <td className="px-4 lg:px-6 py-4 text-xs lg:text-sm text-on-surface-variant">{booking.date}</td>
                         <td className="px-4 lg:px-6 py-4 text-xs lg:text-sm text-on-surface-variant font-medium">{booking.eventType || 'N/A'}</td>
-                        <td className="px-4 lg:px-6 py-4 text-xs lg:text-sm font-bold text-primary">{booking.packagePlan || 'Basic'}</td>
                         <td className="px-4 lg:px-6 py-4">
                           <span className={`px-2 lg:px-3 py-1 rounded-full text-[9px] lg:text-[10px] font-bold uppercase tracking-wide inline-block whitespace-nowrap ${
                             booking.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 
@@ -147,6 +160,15 @@ export const AdminDashboard = () => {
                           }`}>
                             {booking.status === 'confirmed' ? 'Xác nhận' : 'Chờ xử lý'}
                           </span>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 text-right">
+                           <Link 
+                             to="/admin/bookings" 
+                             className="p-2 hover:bg-primary hover:text-white rounded-lg transition-all inline-block text-on-surface-variant"
+                             title="Quản lý lịch hẹn"
+                           >
+                             <ArrowUpRight className="w-4 h-4" />
+                           </Link>
                         </td>
                       </tr>
                     ))

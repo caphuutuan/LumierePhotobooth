@@ -35,6 +35,7 @@ import { AdminBookings } from './components/admin/AdminBookings';
 import { AdminContent } from './components/admin/AdminContent';
 import { AdminSettings } from './components/admin/AdminSettings';
 import { AdminUsers } from './components/admin/AdminUsers';
+import { CustomerDetail } from './components/admin/CustomerDetail';
 import { Login } from './components/Login';
 import { Account } from './components/Account';
 import { Toaster } from 'react-hot-toast';
@@ -80,6 +81,7 @@ export default function App() {
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="content" element={<AdminContent />} />
               <Route path="users" element={<AdminUsers />} />
+              <Route path="customers/:id" element={<CustomerDetail />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
           </Routes>

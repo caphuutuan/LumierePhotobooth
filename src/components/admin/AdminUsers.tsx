@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { 
   Users, 
   Search, 
@@ -174,7 +175,12 @@ export const AdminUsers = () => {
 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-bold truncate">{user.displayName || 'Khách hàng'}</h3>
+                    <Link 
+                      to={`/admin/customers/${user.uid}`}
+                      className="text-lg font-bold truncate hover:text-primary transition-colors block"
+                    >
+                      {user.displayName || 'Khách hàng'}
+                    </Link>
                     <p className="text-xs text-on-surface-variant font-bold truncate opacity-60 tracking-wider uppercase mb-0.5">{user.role}</p>
                     <p className="text-sm text-primary font-bold truncate">{user.email || 'N/A'}</p>
                   </div>

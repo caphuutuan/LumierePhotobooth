@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { collection, query, orderBy, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
@@ -291,7 +292,17 @@ export const AdminBookings = () => {
 
                       <div className="space-y-4">
                         <div>
-                          <h3 className="text-base lg:text-lg font-bold">{booking.name}</h3>
+                          <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider mb-1">Mã xác nhận</p>
+                          <p className="text-xs font-mono font-bold tracking-wider text-primary bg-primary/5 p-2 rounded-lg break-all">#{booking.id.slice(0, 8).toUpperCase()}</p>
+                        </div>
+
+                        <div>
+                          <Link 
+                            to={`/admin/customers/${booking.userId || booking.phone}`}
+                            className="text-base lg:text-lg font-bold hover:text-primary transition-colors block"
+                          >
+                            {booking.name}
+                          </Link>
                           <p className="text-primary text-sm lg:text-base font-bold">{booking.phone}</p>
                         </div>
 
