@@ -162,7 +162,10 @@ export const ContactFloat = () => {
         setChatMessages(updatedWithAssistant);
         await saveChatSession(updatedWithAssistant);
       } else {
-        const errorMsg = { role: 'assistant' as const, content: `Lỗi: ${data.error || 'Không thể kết nối với AI.'}` };
+        // Since our server-side API is fully polished and returns polite, elegant Vietnamese messages,
+        // we display that message directly to the user to maintain an exquisite brand experience.
+        const userFriendlyMsg = data.error || 'Hệ thống Trợ lý AI của Lumière đang bận hoặc gặp lỗi kết nối tạm thời. Quý khách vui lòng thử lại sau giây lát hoặc chọn hỗ trợ qua Zalo, Messenger, Điện thoại ở các nút liên hệ bên cạnh nhé!';
+        const errorMsg = { role: 'assistant' as const, content: userFriendlyMsg };
         const updatedWithError = [...updatedMessagesWithUser, errorMsg];
         setChatMessages(updatedWithError);
         await saveChatSession(updatedWithError);

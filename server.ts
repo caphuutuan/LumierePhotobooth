@@ -78,8 +78,78 @@ Khi trả lời, hãy giữ giọng văn hào hoa, sang trọng, lịch sự, nh
     const reply = response.text || "Xin lỗi, hiện tại tôi không thể xử lý yêu cầu này.";
     res.json({ reply });
   } catch (error: any) {
+    // Check if it's a rate limit or quota exceeded error (429 or RESOURCE_EXHAUSTED)
+    let isQuotaError = false;
+    try {
+      // 1. Direct code/status inspection
+      if (
+        error.status === 429 || 
+        error.status === '429' ||
+        error.statusCode === 429 || 
+        error.statusCode === '429' || 
+        error.code === 429 ||
+        error.code === '429' ||
+        error.status === 'RESOURCE_EXHAUSTED' ||
+        error.status === 'resource_exhausted'
+      ) {
+        isQuotaError = true;
+      }
+      
+      // 2. Nested server/client API error payload check
+      if (error.error) {
+        if (
+          error.error.code === 429 || 
+          error.error.code === '429' || 
+          error.error.status === 'RESOURCE_EXHAUSTED' ||
+          error.error.status === 'resource_exhausted'
+        ) {
+          isQuotaError = true;
+        }
+      }
+
+      // 3. String lookup check on all error fields
+      const searchTerms = ['429', 'resource_exhausted', 'quota', 'exhausted', 'rate limit', 'rate_limit', 'limit exceeded'];
+      
+      const checkString = (str: string) => {
+        const lower = str.toLowerCase();
+        return searchTerms.some(term => lower.includes(term));
+      };
+
+      if (error.message && checkString(String(error.message))) {
+        isQuotaError = true;
+      }
+
+      if (checkString(String(error))) {
+        isQuotaError = true;
+      }
+
+      try {
+        const jsonStr = JSON.stringify(error);
+        if (checkString(jsonStr)) {
+          isQuotaError = true;
+        }
+      } catch (jsonErr) {
+        // Skip JSON verification if circular reference occurs
+      }
+    } catch (e) {
+      // Safe fallback in case of inspection exception
+      isQuotaError = String(error).includes('429');
+    }
+
+    if (isQuotaError) {
+      // Suppress stack traces for intentional quota/resource exhaustion events to keep standard err pristine
+      console.warn('Gemini Chat API: Quota/Rate Limit Exceeded (RESOURCE_EXHAUSTED)');
+      return res.status(429).json({ 
+        error: 'Hệ thống Trợ lý AI của Lumière đang tạm thời bận do nhận quá nhiều yêu cầu cùng lúc. Quý khách vui lòng đợi vài giây và thử lại, hoặc nhắn tin qua Zalo/Messenger bằng nút liên hệ nhanh bên cạnh để được Lumière hỗ trợ tức thì ạ!'
+      });
+    }
+
+    // Print actual unexpected system crashes
     console.error('Error in gemini/chat endpoint:', error);
-    res.status(500).json({ error: error.message || 'Lỗi hệ thống khi kết nối với AI.' });
+
+    res.status(500).json({ 
+      error: 'Hệ thống Trợ lý AI của Lumière đang tạm thời bận hoặc gặp lỗi kết nối. Quý khách vui lòng thử lại sau giây lát hoặc nhắn tin qua Zalo/Messenger để được tư vấn nhanh nhất ạ!' 
+    });
   }
 });
 
