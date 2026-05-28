@@ -11,6 +11,7 @@ import {
   User,
   Settings,
   ChevronRight,
+  ChevronLeft,
   Menu,
   X,
   Users,
@@ -23,8 +24,19 @@ export const AdminLayout = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('lumiere_admin_sidebar_collapsed') === 'true';
+  });
   const navigate = useNavigate();
   const location = useLocation();
+
+  const toggleSidebarCollapse = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('lumiere_admin_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -96,7 +108,7 @@ export const AdminLayout = () => {
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 w-72 bg-white border-r border-surface-variant/20 flex flex-col h-full z-[70] transition-transform duration-300 lg:sticky lg:translate-x-0
+        fixed inset-y-0 left-0 ${isCollapsed ? 'lg:w-[88px]' : 'lg:w-72'} w-72 bg-white border-r border-surface-variant/20 flex flex-col h-full z-[70] transition-all duration-300 lg:sticky lg:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Sidebar Header for Mobile */}
@@ -110,12 +122,26 @@ export const AdminLayout = () => {
           </button>
         </div>
 
-        <div className="p-8 hidden lg:block">
-          <Link to="/" className="font-sans text-2xl text-primary font-bold tracking-tighter">LUMIÈRE</Link>
-          <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant mt-1">Admin Panel</p>
+        {/* Sidebar Header for Desktop */}
+        <div className={`p-8 hidden lg:flex items-center justify-between border-b border-[#F8F9FA] ${isCollapsed ? 'px-4 py-6 flex-col gap-4' : ''}`}>
+          {!isCollapsed ? (
+            <div>
+              <Link to="/" className="font-sans text-2xl text-primary font-bold tracking-tighter">LUMIÈRE</Link>
+              <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant mt-1">Admin Panel</p>
+            </div>
+          ) : (
+            <Link to="/" className="font-sans text-2xl text-primary font-black tracking-tighter bg-primary/5 w-11 h-11 rounded-2xl flex items-center justify-center">L</Link>
+          )}
+          <button
+            onClick={toggleSidebarCollapse}
+            className={`p-1.5 hover:bg-primary/5 rounded-xl text-primary transition-all cursor-pointer border border-primary/10 hover:border-primary/20 ${isCollapsed ? 'mt-2' : ''}`}
+            title={isCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
         </div>
 
-        <nav className="flex-grow px-4 space-y-2 mt-6 lg:mt-4">
+        <nav className="flex-grow px-4 space-y-2 mt-6 lg:mt-5">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -123,40 +149,50 @@ export const AdminLayout = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center gap-4 px-6 py-4 rounded-2xl font-medium transition-all group ${
+                className={`flex items-center transition-all group ${
+                  isCollapsed ? 'lg:px-0 lg:justify-center lg:h-12 lg:w-12 lg:mx-auto' : 'px-6 py-4'
+                } py-4 rounded-2xl font-medium ${
                   isActive 
                     ? 'bg-primary text-white shadow-lg shadow-primary/20' 
                     : 'text-on-surface-variant hover:bg-primary/5 hover:text-primary'
                 }`}
+                title={isCollapsed ? item.label : ''}
               >
-                <item.icon className="w-5 h-5" />
-                <span>{item.label}</span>
-                {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                <item.icon className="w-5 h-5 shrink-0" />
+                <span className={`whitespace-nowrap transition-all duration-250 ${isCollapsed ? 'lg:hidden opacity-0 w-0' : 'ml-4 opacity-100'}`}>
+                  {item.label}
+                </span>
+                {isActive && !isCollapsed && <ChevronRight className="w-4 h-4 ml-auto" />}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-6 border-t border-surface-variant/10">
-          <div className="flex items-center gap-4 px-4 py-4 bg-surface-container rounded-2xl mb-4">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden shrink-0">
+        <div className={`p-6 border-t border-surface-variant/10 ${isCollapsed ? 'lg:p-3' : ''}`}>
+          <div className={`flex items-center gap-4 ${isCollapsed ? 'lg:flex-col lg:gap-2 lg:px-2 lg:py-4 lg:bg-transparent' : 'px-4 py-4 bg-surface-container'} rounded-2xl mb-4`}>
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden shrink-0 border border-primary/15">
               {user.photoURL ? (
                 <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <User className="w-5 h-5" />
               )}
             </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-bold truncate">{user.displayName || 'Admin'}</p>
+            <div className={`overflow-hidden text-left ${isCollapsed ? 'lg:hidden' : 'block'}`}>
+              <p className="text-sm font-bold truncate text-on-surface">{user.displayName || 'Admin'}</p>
               <p className="text-[10px] text-on-surface-variant truncate">{user.email}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-medium text-error hover:bg-error/5 transition-all"
+            className={`w-full flex items-center transition-all ${
+              isCollapsed ? 'lg:px-0 lg:justify-center lg:h-12 lg:w-12 lg:mx-auto lg:rounded-2xl' : 'px-6 py-4'
+            } py-4 rounded-2xl font-medium text-error hover:bg-error/5`}
+            title={isCollapsed ? "Đăng xuất" : ""}
           >
-            <LogOut className="w-5 h-5" />
-            <span>Đăng xuất</span>
+            <LogOut className="w-5 h-5 shrink-0" />
+            <span className={`transition-all duration-200 ${isCollapsed ? 'lg:hidden w-0 opacity-0' : 'ml-4 opacity-100'}`}>
+              Đăng xuất
+            </span>
           </button>
         </div>
       </aside>
