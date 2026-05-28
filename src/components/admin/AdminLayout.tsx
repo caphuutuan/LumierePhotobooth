@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { syncUserProfile } from '../../lib/userService';
 import toast from 'react-hot-toast';
+import { AdminHeader } from './AdminHeader';
 
 export const AdminLayout = () => {
   const [loading, setLoading] = useState(true);
@@ -82,17 +83,6 @@ export const AdminLayout = () => {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col lg:flex-row">
-      {/* Mobile Header */}
-      <header className="lg:hidden bg-white border-b border-surface-variant/20 px-6 py-4 flex items-center justify-between sticky top-0 z-[60]">
-        <Link to="/" className="font-sans text-xl text-primary font-bold tracking-tighter">LUMIÈRE</Link>
-        <button 
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 bg-surface-container rounded-xl text-primary hover:bg-primary/5 transition-all"
-        >
-          {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </header>
-
       {/* Backdrop for mobile */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -104,19 +94,19 @@ export const AdminLayout = () => {
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[65] lg:hidden"
           />
         )}
-      </AnimatePresence>
+       </AnimatePresence>
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 ${isCollapsed ? 'lg:w-[88px]' : 'lg:w-72'} w-72 bg-white border-r border-surface-variant/20 flex flex-col h-full z-[70] transition-all duration-300 lg:sticky lg:translate-x-0
+        fixed inset-y-0 left-0 ${isCollapsed ? 'lg:w-[88px]' : 'lg:w-72'} w-72 bg-white border-r border-[#F1F3F5] flex flex-col h-full z-[70] transition-all duration-300 lg:sticky lg:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Sidebar Header for Mobile */}
-        <div className="p-6 flex items-center justify-between lg:hidden border-b border-surface-variant/10">
+        <div className="p-6 flex items-center justify-between lg:hidden border-b border-surface-variant/10 bg-[#F8F9FA]/50">
           <Link to="/" className="font-sans text-xl text-primary font-bold tracking-tighter">LUMIÈRE</Link>
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="p-2 bg-surface-container rounded-xl text-on-surface-variant"
+            className="p-2 bg-surface-container rounded-xl text-on-surface-variant cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -149,9 +139,9 @@ export const AdminLayout = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center transition-all group ${
-                  isCollapsed ? 'lg:px-0 lg:justify-center lg:h-12 lg:w-12 lg:mx-auto' : 'px-6 py-4'
-                } py-4 rounded-2xl font-medium ${
+                className={`flex items-center transition-all group px-4 py-3.5 sm:px-6 sm:py-4 rounded-2xl font-medium ${
+                  isCollapsed ? 'lg:px-0 lg:justify-center lg:h-12 lg:w-12 lg:mx-auto' : ''
+                } ${
                   isActive 
                     ? 'bg-primary text-white shadow-lg shadow-primary/20' 
                     : 'text-on-surface-variant hover:bg-primary/5 hover:text-primary'
@@ -159,17 +149,21 @@ export const AdminLayout = () => {
                 title={isCollapsed ? item.label : ''}
               >
                 <item.icon className="w-5 h-5 shrink-0" />
-                <span className={`whitespace-nowrap transition-all duration-250 ${isCollapsed ? 'lg:hidden opacity-0 w-0' : 'ml-4 opacity-100'}`}>
+                <span className={`whitespace-nowrap transition-all duration-250 ml-4 opacity-100 ${isCollapsed ? 'lg:hidden lg:opacity-0 lg:w-0' : ''}`}>
                   {item.label}
                 </span>
-                {isActive && !isCollapsed && <ChevronRight className="w-4 h-4 ml-auto" />}
+                {isActive && (
+                  <ChevronRight className={`w-4 h-4 ml-auto ${isCollapsed ? 'lg:hidden' : 'block'}`} />
+                )}
               </Link>
             );
           })}
         </nav>
 
         <div className={`p-6 border-t border-surface-variant/10 ${isCollapsed ? 'lg:p-3' : ''}`}>
-          <div className={`flex items-center gap-4 ${isCollapsed ? 'lg:flex-col lg:gap-2 lg:px-2 lg:py-4 lg:bg-transparent' : 'px-4 py-4 bg-surface-container'} rounded-2xl mb-4`}>
+          <div className={`flex items-center gap-4 px-4 py-4 bg-surface-container rounded-2xl mb-4 transition-all ${
+            isCollapsed ? 'lg:flex-col lg:gap-2 lg:px-2 lg:py-4 lg:bg-transparent' : ''
+          }`}>
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden shrink-0 border border-primary/15">
               {user.photoURL ? (
                 <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" />
@@ -184,23 +178,29 @@ export const AdminLayout = () => {
           </div>
           <button
             onClick={handleLogout}
-            className={`w-full flex items-center transition-all ${
-              isCollapsed ? 'lg:px-0 lg:justify-center lg:h-12 lg:w-12 lg:mx-auto lg:rounded-2xl' : 'px-6 py-4'
-            } py-4 rounded-2xl font-medium text-error hover:bg-error/5`}
+            className={`w-full flex items-center transition-all px-4 py-3.5 sm:px-6 sm:py-4 rounded-2xl font-medium text-error hover:bg-error/5 cursor-pointer ${
+              isCollapsed ? 'lg:px-0 lg:justify-center lg:h-12 lg:w-12 lg:mx-auto lg:rounded-2xl' : ''
+            }`}
             title={isCollapsed ? "Đăng xuất" : ""}
           >
             <LogOut className="w-5 h-5 shrink-0" />
-            <span className={`transition-all duration-200 ${isCollapsed ? 'lg:hidden w-0 opacity-0' : 'ml-4 opacity-100'}`}>
+            <span className={`transition-all duration-200 ml-4 opacity-100 ${isCollapsed ? 'lg:hidden lg:w-0 lg:opacity-0' : ''}`}>
               Đăng xuất
             </span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-grow p-6 lg:p-10 w-full overflow-hidden">
-        <Outlet />
-      </main>
+      {/* Main Container Right-side */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        {/* Dynamic header containing logo, search/actions, real-time unread/appointment notifications, and current online account profile */}
+        <AdminHeader user={user} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} />
+        
+        {/* Main Content Pane */}
+        <main className="flex-1 p-6 lg:p-10 w-full">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };
