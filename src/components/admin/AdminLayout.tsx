@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  Users
+  Users,
+  Bot
 } from 'lucide-react';
 import { syncUserProfile } from '../../lib/userService';
 import toast from 'react-hot-toast';
@@ -61,6 +62,7 @@ export const AdminLayout = () => {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin' },
     { icon: CalendarCheck, label: 'Lịch đặt hẹn', path: '/admin/bookings' },
+    { icon: Bot, label: 'Hội thoại AI', path: '/admin/ai-chats' },
     { icon: ImageIcon, label: 'Quản lý nội dung', path: '/admin/content' },
     { icon: Users, label: 'Người dùng & Quyền', path: '/admin/users' },
     { icon: Settings, label: 'Cài đặt site', path: '/admin/settings' },

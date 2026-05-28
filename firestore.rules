@@ -88,6 +88,15 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // AI Chat conversations
+    match /ai_chats/{sessionId} {
+      allow create, update: if true;
+      allow read: if isAdmin() || (
+        isSignedIn() && resource.data.userId == request.auth.uid
+      );
+      allow delete: if isAdmin();
+    }
+
     // Admin list
     match /admins/{uid} {
       allow read: if isSignedIn();

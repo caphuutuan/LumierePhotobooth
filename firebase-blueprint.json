@@ -105,9 +105,29 @@
         "hero_gallery": { "type": "array" },
         "stats": { "type": "array" }
       }
+    },
+    "ai_chat": {
+      "title": "AI Chat History",
+      "description": "Historical chat logs with the Lumière AI assistant",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": ["string", "null"] },
+        "userName": { "type": "string" },
+        "userEmail": { "type": ["string", "null"] },
+        "userPhone": { "type": ["string", "null"] },
+        "messages": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "unreadByAdmin": { "type": "boolean" }
+      },
+      "required": ["id", "userName", "messages", "updatedAt", "unreadByAdmin"]
     }
   },
   "firestore": {
+    "/ai_chats/{sessionId}": {
+      "schema": "ai_chat",
+      "description": "AI chatbot real-time sessions and customer transcripts"
+    },
     "/bookings/{bookingId}": {
       "schema": "booking",
       "description": "User lead submissions"

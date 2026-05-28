@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Phone, MessageCircle, X, Bot, Send, Sparkles } from 'lucide-react';
 import { SiZalo, SiMessenger } from 'react-icons/si';
 import { useState, useEffect } from 'react';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
 
 const NOTIFICATIONS = [
   "Bạn cần Lumière tư vấn?",
@@ -34,6 +36,75 @@ export const ContactFloat = () => {
   ]);
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
+
+  // 1. Initialize or load sessionId on client
+  useEffect(() => {
+    let id = localStorage.getItem('lumiere_ai_chat_session_id');
+    if (!id) {
+      id = 'chat_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+      localStorage.setItem('lumiere_ai_chat_session_id', id);
+    }
+    setSessionId(id);
+  }, []);
+
+  // 2. Load existing chat session if it exists in firestore
+  useEffect(() => {
+    if (!sessionId) return;
+    const loadChatHistory = async () => {
+      try {
+        const sessionDocRef = doc(db, 'ai_chats', sessionId);
+        const docSnap = await getDoc(sessionDocRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data && data.messages && Array.isArray(data.messages)) {
+            const loadedMessages = data.messages.map((m: any) => ({
+              role: m.role,
+              content: m.content
+                ? m.content
+                : m.text
+                ? m.text
+                : ''
+            }));
+            if (loadedMessages.length > 0) {
+              setChatMessages(loadedMessages);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Lỗi tải lịch sử chat:', err);
+      }
+    };
+    loadChatHistory();
+  }, [sessionId]);
+
+  // 3. Helper to save state to Firestore
+  const saveChatSession = async (messages: Array<{ role: 'user' | 'assistant', content: string }>) => {
+    if (!sessionId) return;
+    try {
+      const currentUser = auth.currentUser;
+      const sessionDocRef = doc(db, 'ai_chats', sessionId);
+      
+      const chatData = {
+        id: sessionId,
+        userId: currentUser?.uid || null,
+        userName: currentUser?.displayName || 'Khách hàng vãng lai',
+        userEmail: currentUser?.email || null,
+        userPhone: currentUser?.phoneNumber || null,
+        messages: messages.map(m => ({
+          role: m.role,
+          content: m.content,
+          timestamp: new Date().toISOString()
+        })),
+        updatedAt: serverTimestamp(),
+        unreadByAdmin: true
+      };
+
+      await setDoc(sessionDocRef, chatData, { merge: true });
+    } catch (err) {
+      console.error('Lỗi lưu hội thoại lên Firestore:', err);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -70,29 +141,38 @@ export const ContactFloat = () => {
 
     // Create user message
     const userMsg = { role: 'user' as const, content: rawText };
-    setChatMessages(prev => [...prev, userMsg]);
+    const updatedMessagesWithUser = [...chatMessages, userMsg];
+    setChatMessages(updatedMessagesWithUser);
     if (!textToSend) setInputVal('');
     setIsTyping(true);
 
-    try {
-      // Build conversation history to send to server
-      const updatedHistory = [...chatMessages, userMsg];
+    // Save early user message state to firestore
+    await saveChatSession(updatedMessagesWithUser);
 
+    try {
       const response = await fetch('/api/gemini/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: updatedHistory })
+        body: JSON.stringify({ messages: updatedMessagesWithUser })
       });
 
       const data = await response.json();
       if (response.ok) {
-        setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+        const updatedWithAssistant = [...updatedMessagesWithUser, { role: 'assistant' as const, content: data.reply }];
+        setChatMessages(updatedWithAssistant);
+        await saveChatSession(updatedWithAssistant);
       } else {
-        setChatMessages(prev => [...prev, { role: 'assistant', content: `Lỗi: ${data.error || 'Không thể kết nối với AI.'}` }]);
+        const errorMsg = { role: 'assistant' as const, content: `Lỗi: ${data.error || 'Không thể kết nối với AI.'}` };
+        const updatedWithError = [...updatedMessagesWithUser, errorMsg];
+        setChatMessages(updatedWithError);
+        await saveChatSession(updatedWithError);
       }
     } catch (err) {
       console.error(err);
-      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Hiện tại không thể liên kết đến hệ thống Trợ lý ảo. Vui lòng kiểm tra kết nối mạng.' }]);
+      const networkErrorMsg = { role: 'assistant' as const, content: 'Hiện tại không thể liên kết đến hệ thống Trợ lý ảo. Vui lòng kiểm tra kết nối mạng.' };
+      const updatedWithNetworkError = [...updatedMessagesWithUser, networkErrorMsg];
+      setChatMessages(updatedWithNetworkError);
+      await saveChatSession(updatedWithNetworkError);
     } finally {
       setIsTyping(false);
     }
